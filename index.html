@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <title>Muthaber EDU</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
 body {
   margin:0;
@@ -38,17 +42,81 @@ button {
   font-size:18px;
   font-weight:bold;
 }
+.hidden {display:none;}
 </style>
 </head>
 <body>
 
 <div class="card">
 <h1>Muthaber EDU</h1>
-<p>نظام نقاط ومكافآت الطلاب</p>
-<input placeholder="رقم هاتف ولي الأمر">
-<button>تسجيل الدخول</button>
-<p style="opacity:.5;font-size:12px">Powered by Firebase</p>
+
+<div id="login">
+<input id="phone" placeholder="رقم هاتف ولي الأمر">
+<button onclick="sendOTP()">تسجيل الدخول</button>
 </div>
+
+<div id="otp" class="hidden">
+<input id="code" placeholder="رمز التحقق">
+<button onclick="verifyOTP()">تحقق</button>
+</div>
+
+<div id="dashboard" class="hidden">
+<h3 id="userPhone"></h3>
+<h2>رصيدك: <span id="points">0</span> نقطة</h2>
+<button onclick="earn()">حصلت على نقاط</button>
+</div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAvIPfD8xodfXlfWK6acqygQ0WSy_-E9L8",
+  authDomain: "muthaber-edu.firebaseapp.com",
+  projectId: "muthaber-edu",
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+let confirmationResult;
+
+function sendOTP(){
+  const phone = document.getElementById("phone").value;
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('login',{size:'invisible'});
+  auth.signInWithPhoneNumber("+962"+phone,window.recaptchaVerifier).then(res=>{
+    confirmationResult=res;
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("otp").classList.remove("hidden");
+  });
+}
+
+function verifyOTP(){
+  const code=document.getElementById("code").value;
+  confirmationResult.confirm(code).then(res=>{
+    const user=res.user;
+    document.getElementById("otp").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+    document.getElementById("userPhone").innerText=user.phoneNumber;
+
+    const ref=db.collection("users").doc(user.uid);
+    ref.get().then(doc=>{
+      if(!doc.exists){
+        ref.set({phone:user.phoneNumber,points:10});
+        document.getElementById("points").innerText=10;
+      } else {
+        document.getElementById("points").innerText=doc.data().points;
+      }
+    });
+  });
+}
+
+function earn(){
+  const user=auth.currentUser;
+  const ref=db.collection("users").doc(user.uid);
+  ref.update({points:firebase.firestore.FieldValue.increment(5)});
+  ref.get().then(d=>document.getElementById("points").innerText=d.data().points+5);
+}
+</script>
 
 </body>
 </html>
