@@ -1,67 +1,123 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar">
 <head>
+<meta charset="UTF-8">
 <title>Muthaber EDU</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 <style>
-body{
-font-family:Arial;
-background:#0f766e;
-display:flex;
-align-items:center;
-justify-content:center;
-height:100vh;
+body {
+    font-family: Arial;
+    background:#0f766e;
+    color:#000;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
 }
-.card{
-background:white;
-padding:30px;
-border-radius:20px;
-width:90%;
-max-width:400px;
-text-align:center;
+
+.box {
+    background:#fff;
+    padding:30px;
+    border-radius:15px;
+    width:90%;
+    max-width:400px;
+    text-align:center;
 }
-input,button{
-width:100%;
-padding:15px;
-margin:10px 0;
-border-radius:10px;
+
+input {
+    width:100%;
+    padding:12px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    margin-bottom:15px;
+    font-size:16px;
 }
-button{background:#10b981;color:white;}
+
+button {
+    background:#10b981;
+    color:#fff;
+    border:none;
+    padding:12px;
+    width:100%;
+    border-radius:8px;
+    font-size:18px;
+    cursor:pointer;
+}
+
+.hidden {display:none;}
+
+.link {
+    background:#ecfdf5;
+    padding:10px;
+    border-radius:8px;
+    word-break:break-all;
+    margin-top:10px;
+}
 </style>
 </head>
+
 <body>
 
-<div class="card">
-<h2>Muthaber EDU</h2>
+<div class="box" id="loginBox">
+    <h2>Muthaber EDU</h2>
+    <input id="phone" placeholder="ادخل رقم الهاتف">
+    <button onclick="login()">دخول</button>
+</div>
 
-<input id="phone" placeholder="رقم الهاتف أو رقم الطالب">
-<button onclick="login()">دخول</button>
+<div class="box hidden" id="appBox">
+    <h2>مرحبا 👋</h2>
+    <p>رقمك: <span id="userPhone"></span></p>
+    <p>نقاطك: <b><span id="points">0</span></b></p>
 
-<h3 id="points"></h3>
+    <h3>رابط الإحالة الخاص بك</h3>
+    <div class="link" id="refLink"></div>
+
+    <button onclick="copyLink()">نسخ الرابط</button>
 </div>
 
 <script>
-firebase.initializeApp({
- apiKey:"AIzaSyAvIPfD8xodfXlfWK6acqygQ0WSy_-E9L8",
- projectId:"muthaber-edu"
-});
+let users = JSON.parse(localStorage.getItem("users") || "{}");
 
-const db=firebase.firestore();
+const params = new URLSearchParams(window.location.search);
+const ref = params.get("ref");
 
-function login(){
- const id=document.getElementById("phone").value;
- db.collection("users").doc(id).get().then(d=>{
-  if(d.exists){
-    document.getElementById("points").innerText="نقاطك: "+d.data().points;
-  } else {
-    db.collection("users").doc(id).set({points:10});
-    document.getElementById("points").innerText="تم إنشاء حسابك – نقاطك 10";
-  }
- });
+function login() {
+    let phone = document.getElementById("phone").value.trim();
+    if(phone.length < 8) return alert("ادخل رقم صحيح");
+
+    if(!users[phone]) {
+        users[phone] = { points: 0 };
+
+        if(ref && users[ref]) {
+            users[ref].points += 10;
+        }
+    }
+
+    localStorage.setItem("users", JSON.stringify(users));
+    localStorage.setItem("current", phone);
+    showApp();
 }
+
+function showApp() {
+    let phone = localStorage.getItem("current");
+    if(!phone) return;
+
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("appBox").classList.remove("hidden");
+
+    document.getElementById("userPhone").innerText = phone;
+    document.getElementById("points").innerText = users[phone].points;
+
+    let link = window.location.origin + window.location.pathname + "?ref=" + phone;
+    document.getElementById("refLink").innerText = link;
+}
+
+function copyLink() {
+    navigator.clipboard.writeText(document.getElementById("refLink").innerText);
+    alert("تم نسخ رابط الإحالة!");
+}
+
+showApp();
 </script>
 
 </body>
